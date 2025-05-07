@@ -32,7 +32,7 @@ class Gradient_Engine:
                 (vecMin - self.tensor) / (perturbations - EPS),
                 torch.tensor(perturbation_scale_factor, device=self.device),
             )
-            safe_scale = torch.min(torch.tensor(1.0), torch.min(pos_scale, neg_scale))
+            safe_scale = torch.min(pos_scale, neg_scale).clamp(max=1.0)
             cand_batch = (self.tensor + perturbations * safe_scale).to(self.func_device).clamp(vecMin, vecMax) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
         
         else:

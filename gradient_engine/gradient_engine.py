@@ -36,9 +36,7 @@ class Gradient_Engine:
                 torch.tensor(1.0, device=self.device),
             )
             safe_scale = torch.min(pos_scale, neg_scale).clamp(max=1.0)
-            batch_pert.mul(safe_scale)
-
-            cand_batch = (self.tensor + batch_pert).to(self.func_device).clamp(vecMin, vecMax) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
+            cand_batch = (self.tensor + batch_pert * safe_scale).to(self.func_device).clamp(vecMin, vecMax) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
         
         else:
             cand_batch = (self.tensor + batch_pert).to(self.func_device)    #Clampage sorta redundant here but better safe than sorry

@@ -14,7 +14,6 @@ class Gradient_Engine:
         self.num_perturbations = num_perturbations
         self.tensor = tensor.to(self.device)
         self.gradient = torch.zeros_like(self.tensor)
-        self.tensor_image_size = self.tensor.numel()
         
 
 

@@ -51,7 +51,7 @@ class Gradient_Engine:
         new_outputs = torch.stack([self.func(v) for v in cand_batch], dim=0).to(self.device) #[NUM_PERTURBATIONS, N_BITS]
         
         diffs = self.delta_func(new_outputs, last_output)
-        hamming_deltas = diffs.sum(dim=1).to(self.tensor.dtype).view(self.num_perturbations, 1, 1, 1)
+        deltas = diffs.sum(dim=1).to(self.tensor.dtype).view(self.num_perturbations, *((1,) * self.tensor.dim()))
 
-        gradient = (hamming_deltas * batch_pert.to(self.device)).sum(dim=0).to(self.device).view(self.tensor.shape)  #[d1, d2, d3] -> VecSum([[d1], [d2], [d3]] * [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]) -> [g1, g2, g3] where gx = [dx] * [px1, px2, px3]
+        gradient = (deltas * batch_pert.to(self.device)).sum(dim=0).to(self.device).view(self.tensor.shape)  #[d1, d2, d3] -> VecSum([[d1], [d2], [d3]] * [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]) -> [g1, g2, g3] where gx = [dx] * [px1, px2, px3]
         return gradient

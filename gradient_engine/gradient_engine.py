@@ -2,60 +2,69 @@ import torch
 from .utils import generate_perturbation_vectors
 
 
-EPS = 1e-6 #1 in a million baby
+EPS = 1e-6 #1 in a million, Baby
 class Gradient_Engine:
 
-    def __init__(self, func, delta_func, tensor, device, func_device, num_perturbations, quant_func=None):    
+    def __init__(self, func, delta_func, quant_func, func_device, delta_func_device, quant_func_device, tensor):    
         self.func = func
         self.delta_func = delta_func
         self.quant_func = quant_func
-        self.device = device
         self.func_device = func_device
-        self.num_perturbations = num_perturbations
-        self.tensor = tensor.to(self.device)
+        self.delta_func_device = delta_func_device
+        self.quant_func_device = quant_func_device
+        self.tensor = tensor
         self.gradient = torch.zeros_like(self.tensor)
         
+
+    def compute_gradient(self, **kwargs):
+        raise NotImplementedError("Subclasses must implement compute_gradient.")
 
 
 
 
 class NES_Engine(Gradient_Engine):
-    def __init__(self, func, delta_func, tensor, device, func_device, num_perturbations, quant_func=None):      
-        super().__init__(func, delta_func, tensor, device, func_device, num_perturbations, quant_func)
+    def __init__(self, func, delta_func, quant_func, func_device, delta_func_device, quant_func_device, tensor):      
+        super().__init__(self, func, delta_func, quant_func, func_device, delta_func_device, quant_func_device, tensor)
 
 
+    def compute_gradient(self, perturbation_scale_factor, num_perturbations, vecMin=None, vecMax=None):
+        tensor = self.tensor    #Optimize for locality
+        func = self.func
+        delta_func = self.delta_func
+        quant_func = self.quant_func
+        func_device = self.func_device
+        delta_func_device = self.delta_func_device
+        quant_func_device = self.quant_func_device
 
+        device = tensor.device
 
-
-
-    def compute_gradient(self, perturbation_scale_factor, vecMin=None, vecMax=None):
-        perturbations = generate_perturbation_vectors(self.num_perturbations, self.tensor.shape, self.device) #[[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]
-        last_output = self.func(self.tensor)
+        perturbations = generate_perturbation_vectors(num_perturbations, tensor.shape, device) #[[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]
+        last_output = func(tensor).to(delta_func_device)
 
         if vecMin is not None and vecMax is not None:
             pos_scale = torch.where(
                 perturbations > 0,
-                (vecMax - self.tensor) / (perturbations + EPS),
-                torch.tensor(perturbation_scale_factor, device=self.device),
+                (vecMax - tensor) / (perturbations + EPS),
+                torch.tensor(perturbation_scale_factor, device=device),
             )
             neg_scale = torch.where(
                 perturbations < 0,
-                (vecMin - self.tensor) / (perturbations - EPS),
-                torch.tensor(perturbation_scale_factor, device=self.device),
+                (vecMin - tensor) / (perturbations - EPS),
+                torch.tensor(perturbation_scale_factor, device=device),
             )
             safe_scale = torch.min(pos_scale, neg_scale).clamp(max=1.0)
-            cand_batch = (self.tensor + perturbations * safe_scale).to(self.func_device).clamp(vecMin, vecMax) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
+            cand_batch = (tensor + perturbations * safe_scale).to(func_device).clamp(vecMin, vecMax) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
         
         else:
-            cand_batch = (self.tensor + perturbations).to(self.func_device)    #Clampage sorta redundant here but better safe than sorry
+            cand_batch = (tensor + perturbations).to(func_device)    #Clampage sorta redundant here but better safe than sorry
 
-        if self.quant_func is not None:
-            cand_batch = self.quant_func(cand_batch)
+        if quant_func is not None:
+            cand_batch = quant_func(cand_batch.to(quant_func_device))
 
-        new_outputs = torch.stack([self.func(v) for v in cand_batch], dim=0).to(self.device) #[NUM_PERTURBATIONS, N_BITS]; TODO: Add option to support batch vectorized funcs
+        new_outputs = torch.stack([func(v) for v in cand_batch], dim=0).to(delta_func_device) #[NUM_PERTURBATIONS, N_BITS]; TODO: Add option to support batch vectorized funcs
         
-        diffs = self.delta_func(new_outputs, last_output)
-        deltas = diffs.sum(dim=1).to(self.tensor.dtype).view(self.num_perturbations, *((1,) * self.tensor.dim()))
+        diffs = delta_func(new_outputs, last_output)
+        deltas = diffs.sum(dim=1).to(tensor.dtype).view(num_perturbations, *((1,) * tensor.dim()))
 
-        gradient = (deltas * perturbations.to(self.device)).sum(dim=0).to(self.device).view(self.tensor.shape)  #[d1, d2, d3] -> VecSum([[d1], [d2], [d3]] * [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]) -> [g1, g2, g3] where gx = [dx] * [px1, px2, px3]
+        gradient = (deltas * perturbations.to(device)).sum(dim=0).to(device).view(tensor.shape)  #[d1, d2, d3] -> VecSum([[d1], [d2], [d3]] * [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]) -> [g1, g2, g3] where gx = [dx] * [px1, px2, px3]
         return gradient

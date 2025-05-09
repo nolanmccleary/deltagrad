@@ -17,6 +17,17 @@ class Gradient_Engine:
         
 
 
+
+
+class NES_Engine(Gradient_Engine):
+    def __init__(self, func, delta_func, tensor, device, func_device, num_perturbations, quant_func=None):      
+        super().__init__(func, delta_func, tensor, device, func_device, num_perturbations, quant_func)
+
+
+
+
+
+
     def compute_gradient(self, perturbation_scale_factor, vecMin=None, vecMax=None):
         perturbations = generate_perturbation_vectors(self.num_perturbations, self.tensor.shape, self.device) #[[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]
         last_output = self.func(self.tensor)
@@ -41,7 +52,7 @@ class Gradient_Engine:
         if self.quant_func is not None:
             cand_batch = self.quant_func(cand_batch)
 
-        new_outputs = torch.stack([self.func(v) for v in cand_batch], dim=0).to(self.device) #[NUM_PERTURBATIONS, N_BITS]
+        new_outputs = torch.stack([self.func(v) for v in cand_batch], dim=0).to(self.device) #[NUM_PERTURBATIONS, N_BITS]; TODO: Add option to support batch vectorized funcs
         
         diffs = self.delta_func(new_outputs, last_output)
         deltas = diffs.sum(dim=1).to(self.tensor.dtype).view(self.num_perturbations, *((1,) * self.tensor.dim()))

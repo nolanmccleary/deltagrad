@@ -62,10 +62,9 @@ class NES_Engine(Gradient_Engine):
         if quant_func is not None:
             cand_batch = quant_func(cand_batch.to(quant_func_device))
 
-        new_outputs = torch.stack([func(v) for v in cand_batch], dim=0).to(loss_func_device) #[NUM_PERTURBATIONS, N_BITS]; TODO: Implement batch vectorization standard for all funcs
+        new_outputs = func(cand_batch).to(loss_func_device) 
         
-        diffs = loss_func(new_outputs, last_output)       #IMPORTANT: loss_func should be batch vectorized
+        diffs = loss_func(new_outputs, last_output)       
         deltas = diffs.sum(dim=1).to(tensor.dtype).view(num_perturbations, *((1,) * tensor.dim()))
 
-        gradient = (deltas * perturbations.to(device)).sum(dim=0).to(device).view(tensor.shape)  #[d1, d2, d3] -> VecSum([[d1], [d2], [d3]] * [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]) -> [g1, g2, g3] where gx = [dx] * [px1, px2, px3]
-        return gradient
+        return (deltas * perturbations.to(device)).sum(dim=0).to(device).view(tensor.shape)  #[d1, d2, d3] -> VecSum([[d1], [d2], [d3]] * [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]) -> [g1, g2, g3] where gx = [dx] * [px1, px2, px3]

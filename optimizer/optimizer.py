@@ -1,5 +1,5 @@
 import torch
-from deltagrad.gradient_engine import NES_Engine
+from spectra.deltagrad.gradient_engine import NES_Engine #TODO: Change this back
 
 
 EPS = 1e-6
@@ -36,7 +36,7 @@ class NES_Signed_Optimizer(Optimizer):
     
     
     #Step coefficient encodes step size and direction 
-    def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_condition=None):
+    def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
 
         tensor = self.tensor
         device = tensor.device
@@ -75,8 +75,8 @@ class NES_Signed_Optimizer(Optimizer):
             tensor += step
             delta += step
 
-            if acceptance_condition is not None:
-                if acceptance_condition(tensor, delta):
+            if acceptance_func is not None:
+                if acceptance_func(tensor, delta):
                     output_delta = delta.clone()
 
 

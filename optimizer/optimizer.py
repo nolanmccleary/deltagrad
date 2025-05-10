@@ -75,9 +75,9 @@ class NES_Signed_Optimizer(Optimizer):
             tensor += step
             delta += step
 
-        if acceptance_condition is not None:
-            if acceptance_condition(tensor, delta):
-                output_delta = delta.clone()
+            if acceptance_condition is not None:
+                if acceptance_condition(tensor, delta):
+                    output_delta = delta.clone()
 
 
         return output_delta

@@ -1,1 +1,1 @@
-from .optimizer import NES_Signed_Optimizer
+from .optimizer import NES_Signed_Optimizer, NES_Optimizer

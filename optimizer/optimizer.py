@@ -8,10 +8,9 @@ EPS = 1e-6
 class Optimizer:
 
     def __init__(self, func_package: tuple, device_package: tuple, tensor: torch.tensor, **kwargs):
-        self.func, self.delta_func, self.quant_func, self.loss_optimization_func = func_package
-        self.func_device, self.delta_func_device, self.quant_func_device, self.loss_optimization_func_device = device_package
+        self.func, self.loss_func, self.quant_func = func_package
+        self.func_device, self.loss_func_device, self.quant_func_device = device_package
         self.tensor = tensor.clone()
-
 
 
     def get_delta(self, **kwargs):
@@ -22,34 +21,25 @@ class Optimizer:
 
 class NES_Signed_Optimizer(Optimizer):
 
-    def __init__(self, engine, func_package, device_package, tensor, vecMin = None, vecMax = None):
+    def __init__(self, func_package, device_package, tensor, vecMin = None, vecMax = None):
         self.vecMin = vecMin
         self.vecMax = vecMax
-        super().__init__(engine, func_package, device_package, tensor)
+        super().__init__(func_package, device_package, tensor)
         self.engine = NES_Engine(
             func=self.func, 
-            delta_func=self.delta_func, 
+            loss_func=self.loss_func, 
             quant_func=self.quant_func, 
             func_device=self.func_device, 
-            delta_func_device=self.delta_func_device, 
+            loss_func_device=self.loss_func_device, 
             quant_func_device=self.quant_func_device, 
             tensor=self.tensor)
     
     
     #Step coefficient encodes step size and direction 
-    def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, delta_threshold = None):
-        original_func_output = None
+    def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_condition=None):
 
         tensor = self.tensor
         device = tensor.device
-
-        func = self.func
-        delta_func = self.delta_func
-        loss_optimization_func = self.loss_optimization_func
-
-        func_device = self.func_device
-        delta_func_device = self.delta_func_device
-        loss_optimization_func_device = self.loss_optimization_func_device
 
         vecMin = self.vecMin
         vecMax = self.vecMax    #Optimize for locality
@@ -57,15 +47,9 @@ class NES_Signed_Optimizer(Optimizer):
         alpha = 1 - beta
 
         delta = torch.zeros_like(tensor)
-        output_delta = delta.clone()
+        prev_step = torch.zeros_like(tensor)
 
-
-        if delta_threshold is not None: 
-            original_func_output = func(tensor.to(func_device))
-
-        if loss_optimization_func is not None:
-            min_loss = loss_optimization_func(tensor.to(loss_optimization_func_device))
-
+        output_delta = delta    #Tensors shallow copy by default
 
         for _ in range(num_steps): #The loop seems greasy because it is. However, when there is a lot of meat there is bound to be some grease. It's a good thing that most of this meat lies within the repeated function calls during gradient estimation. 
 
@@ -91,24 +75,9 @@ class NES_Signed_Optimizer(Optimizer):
             tensor += step
             delta += step
 
-
-            #REOWRK TODO: Generic representations for primary and secondary loss functions; This all needs to go
-            if delta_threshold is not None:
-                curr_func_output = func(tensor)
-                func_delta = delta_func(original_func_output.to(delta_func_device), curr_func_output.to(delta_func_device))
-                
-                if func_delta >= delta_threshold:
-                    curr_loss = loss_optimization_func(tensor.to(loss_optimization_func_device))  #Normalize secondary comparison as minimizing a loss function
-                    if curr_loss < min_loss:
-                        min_loss = curr_loss
-                        output_delta = delta
-
-            else:
-                curr_loss = loss_optimization_func(tensor.to(loss_optimization_func_device))  #Normalize secondary comparison as minimizing a loss function
-                if curr_loss < min_loss:
-                    min_loss = curr_loss
-                    output_delta = delta
+        if acceptance_condition is not None:
+            if acceptance_condition(tensor, delta):
+                output_delta = delta.clone()
 
 
- 
         return output_delta

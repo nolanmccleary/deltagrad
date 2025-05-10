@@ -5,12 +5,12 @@ from .utils import generate_perturbation_vectors
 EPS = 1e-6 #1 in a million, Baby
 class Gradient_Engine:
 
-    def __init__(self, func, delta_func, quant_func, func_device, delta_func_device, quant_func_device, tensor):    
+    def __init__(self, func, loss_func, quant_func, func_device, loss_func_device, quant_func_device, tensor):    
         self.func = func
-        self.delta_func = delta_func
+        self.loss_func = loss_func
         self.quant_func = quant_func
         self.func_device = func_device
-        self.delta_func_device = delta_func_device
+        self.loss_func_device = loss_func_device
         self.quant_func_device = quant_func_device
         self.tensor = tensor
         self.gradient = torch.zeros_like(self.tensor)
@@ -23,23 +23,24 @@ class Gradient_Engine:
 
 
 class NES_Engine(Gradient_Engine):
-    def __init__(self, func, delta_func, quant_func, func_device, delta_func_device, quant_func_device, tensor):      
-        super().__init__(self, func, delta_func, quant_func, func_device, delta_func_device, quant_func_device, tensor)
+    
+    def __init__(self, func, loss_func, quant_func, func_device, loss_func_device, quant_func_device, tensor):      
+        super().__init__(func, loss_func, quant_func, func_device, loss_func_device, quant_func_device, tensor)
 
 
     def compute_gradient(self, perturbation_scale_factor, num_perturbations, vecMin=None, vecMax=None):
         tensor = self.tensor    #Optimize for locality
         func = self.func
-        delta_func = self.delta_func
+        loss_func = self.loss_func
         quant_func = self.quant_func
         func_device = self.func_device
-        delta_func_device = self.delta_func_device
+        loss_func_device = self.loss_func_device
         quant_func_device = self.quant_func_device
 
         device = tensor.device
 
         perturbations = generate_perturbation_vectors(num_perturbations, tensor.shape, device) #[[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]
-        last_output = func(tensor).to(delta_func_device)
+        last_output = func(tensor).to(loss_func_device)
 
         if vecMin is not None and vecMax is not None:
             pos_scale = torch.where(
@@ -61,9 +62,9 @@ class NES_Engine(Gradient_Engine):
         if quant_func is not None:
             cand_batch = quant_func(cand_batch.to(quant_func_device))
 
-        new_outputs = torch.stack([func(v) for v in cand_batch], dim=0).to(delta_func_device) #[NUM_PERTURBATIONS, N_BITS]; TODO: Add option to support batch vectorized funcs
+        new_outputs = torch.stack([func(v) for v in cand_batch], dim=0).to(loss_func_device) #[NUM_PERTURBATIONS, N_BITS]; TODO: Implement batch vectorization standard for all funcs
         
-        diffs = delta_func(new_outputs, last_output)
+        diffs = loss_func(new_outputs, last_output)       #IMPORTANT: loss_func should be batch vectorized
         deltas = diffs.sum(dim=1).to(tensor.dtype).view(num_perturbations, *((1,) * tensor.dim()))
 
         gradient = (deltas * perturbations.to(device)).sum(dim=0).to(device).view(tensor.shape)  #[d1, d2, d3] -> VecSum([[d1], [d2], [d3]] * [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]) -> [g1, g2, g3] where gx = [dx] * [px1, px2, px3]

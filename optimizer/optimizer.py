@@ -102,7 +102,7 @@ class NES_Optimizer(Optimizer):
     
     
     #Step coefficient encodes step size and direction 
-    def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, gradient_scale_factor=1, beta=1, acceptance_func=None):
+    def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
 
 
         tensor = self.tensor
@@ -124,9 +124,15 @@ class NES_Optimizer(Optimizer):
             tensorMax, idx = torch.abs(tensor).view(-1).max(0)
             stepMax, idy = torch.abs(step).view(-1).max(0)
 
-            step_scaledown = (tensorMax / stepMax) * gradient_scale_factor
+            step_scaledown = (tensorMax / stepMax) 
 
             step *= step_scaledown
+
+
+#            step_norm = step.norm()
+#            tensor_norm = tensor.norm()
+#            step *= (tensor_norm / (step_norm + EPS))
+
 
             if vecMin is not None and vecMax is not None:
                 pos_scale = torch.where(
@@ -142,7 +148,7 @@ class NES_Optimizer(Optimizer):
                 safe_scale = torch.min(pos_scale, neg_scale).clamp(max=1.0)
                 step = step * safe_scale
 
-            step = step * step_coeff * beta + prev_step * alpha
+            step = (step * beta + prev_step * alpha) * step_coeff
             prev_step = step
 
             tensor += step

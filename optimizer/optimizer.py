@@ -1,8 +1,7 @@
 import torch
 from spectra.deltagrad.gradient_engine import NES_Engine #TODO: Change this back
+from spectra.deltagrad.utils import anal_clamp
 
-
-EPS = 1e-6
 
 
 class Optimizer:
@@ -51,22 +50,14 @@ class NES_Signed_Optimizer(Optimizer):
 
         output_delta = delta    #Tensors shallow copy by default
 
-        for _ in range(num_steps): #The loop seems greasy because it is. However, when there is a lot of meat there is bound to be some grease. It's a good thing that most of this meat lies within the repeated function calls during gradient estimation. 
+        for _ in range(num_steps): 
 
             step = torch.sign(self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax)) 
 
             if vecMin is not None and vecMax is not None:
-                pos_scale = torch.where(
-                    step > 0,
-                    (vecMax - tensor) / (step + EPS),
-                    torch.tensor(perturbation_scale_factor, device=device),
-                )
-                neg_scale = torch.where(                                       
-                    tensor < 0,
-                    (vecMin - tensor) / (step - EPS),
-                    torch.tensor(perturbation_scale_factor, device=device),
-                )
-                safe_scale = torch.min(pos_scale, neg_scale).clamp(max=1.0)
+                
+                safe_scale = anal_clamp(tensor, step, vecMin, vecMax, perturbation_scale_factor)
+                
                 step = step * safe_scale
 
             step = step * step_coeff * beta + prev_step * alpha
@@ -118,7 +109,7 @@ class NES_Optimizer(Optimizer):
 
         output_delta = delta    #Tensors shallow copy by default
 
-        for _ in range(num_steps): #The loop seems greasy because it is. However, when there is a lot of meat there is bound to be some grease. It's a good thing that most of this meat lies within the repeated function calls during gradient estimation. 
+        for _ in range(num_steps): 
 
             step = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax) #The step is very large so we have to normalize it
             tensorMax, idx = torch.abs(tensor).view(-1).max(0)
@@ -135,17 +126,9 @@ class NES_Optimizer(Optimizer):
 
 
             if vecMin is not None and vecMax is not None:
-                pos_scale = torch.where(
-                    step > 0,
-                    (vecMax - tensor) / (step + EPS),
-                    torch.tensor(perturbation_scale_factor, device=device),
-                )
-                neg_scale = torch.where(   
-                    tensor < 0,
-                    (vecMin - tensor) / (step - EPS),
-                    torch.tensor(perturbation_scale_factor, device=device),
-                )
-                safe_scale = torch.min(pos_scale, neg_scale).clamp(max=1.0)
+
+                safe_scale = anal_clamp(tensor, step, vecMin, vecMax, perturbation_scale_factor)
+                
                 step = step * safe_scale
 
             step = (step * beta + prev_step * alpha) * step_coeff

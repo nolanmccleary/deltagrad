@@ -1,5 +1,5 @@
 import torch
-from .utils import generate_perturbation_vectors
+from spectra.deltagrad.utils import generate_perturbation_vectors, anal_clamp
 
 
 EPS = 1e-6 #1 in a million, Baby
@@ -43,17 +43,9 @@ class NES_Engine(Gradient_Engine):
         last_output = func(tensor).to(loss_func_device)
 
         if vecMin is not None and vecMax is not None:
-            pos_scale = torch.where(
-                perturbations > 0,
-                (vecMax - tensor) / (perturbations + EPS),
-                torch.tensor(perturbation_scale_factor, device=device),
-            )
-            neg_scale = torch.where(
-                perturbations < 0,
-                (vecMin - tensor) / (perturbations - EPS),
-                torch.tensor(perturbation_scale_factor, device=device),
-            )
-            safe_scale = torch.min(pos_scale, neg_scale).clamp(max=1.0)
+            
+            safe_scale = anal_clamp(tensor, perturbations, vecMin, vecMax, perturbation_scale_factor)
+
             cand_batch = (tensor + perturbations * safe_scale).to(func_device).clamp(vecMin, vecMax) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
         
         else:

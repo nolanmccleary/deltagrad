@@ -17,7 +17,6 @@ class Optimizer:
     
 
 
-
 class NES_Signed_Optimizer(Optimizer):
 
     def __init__(self, func_package, device_package, tensor, vecMin = None, vecMax = None):
@@ -36,6 +35,7 @@ class NES_Signed_Optimizer(Optimizer):
     
     #Step coefficient encodes step size and direction 
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
+        quant_func = self.quant_func
 
         tensor = self.tensor
         device = tensor.device
@@ -66,6 +66,8 @@ class NES_Signed_Optimizer(Optimizer):
             tensor += step
             delta += step
 
+            tensor = quant_func(tensor)
+
             if acceptance_func is not None:
                 if acceptance_func(tensor, delta):
                     output_delta = delta.clone()
@@ -94,7 +96,7 @@ class NES_Optimizer(Optimizer):
     
     #Step coefficient encodes step size and direction 
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
-
+        quant_func = self.quant_func
 
         tensor = self.tensor
         device = tensor.device
@@ -136,6 +138,8 @@ class NES_Optimizer(Optimizer):
 
             tensor += step
             delta += step
+
+            tensor = quant_func(tensor)
 
             if acceptance_func is not None:
                 if acceptance_func(tensor, delta):

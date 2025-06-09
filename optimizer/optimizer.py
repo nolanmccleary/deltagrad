@@ -48,7 +48,6 @@ class NES_Signed_Optimizer(Optimizer):
         delta           = torch.zeros_like(tensor)
         prev_step       = torch.zeros_like(tensor)
 
-        output_delta    = delta    #Tensors shallow copy by default
 
         for _ in range(num_steps): 
 
@@ -68,10 +67,9 @@ class NES_Signed_Optimizer(Optimizer):
 
             if acceptance_func is not None:
                 if acceptance_func(tensor, delta):
-                    output_delta = delta.clone()
+                    break
 
-
-        return output_delta
+        return delta
     
 
 
@@ -107,7 +105,11 @@ class NES_Optimizer(Optimizer):
         delta           = torch.zeros_like(tensor)
         prev_step       = torch.zeros_like(tensor)
 
-        output_delta    = delta    #Tensors shallow copy by default
+        if acceptance_func is None:
+            accepted = True
+        
+        else:
+            accepted = False
 
         for _ in range(num_steps): 
 
@@ -138,8 +140,8 @@ class NES_Optimizer(Optimizer):
             tensor          = quant_func(tensor)
 
             if acceptance_func is not None:
-                if acceptance_func(tensor, delta):
-                    output_delta = delta.clone()
+                accepted = acceptance_func(tensor, delta)
+                if accepted:
+                    break
 
-
-        return output_delta
+        return delta, accepted

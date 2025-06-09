@@ -48,6 +48,11 @@ class NES_Signed_Optimizer(Optimizer):
         delta           = torch.zeros_like(tensor)
         prev_step       = torch.zeros_like(tensor)
 
+        if acceptance_func is None:
+            accepted = True
+        
+        else:
+            accepted = False
 
         for _ in range(num_steps): 
 
@@ -66,11 +71,11 @@ class NES_Signed_Optimizer(Optimizer):
             tensor          = quant_func(tensor)
 
             if acceptance_func is not None:
-                if acceptance_func(tensor):
+                break_loop, accepted = acceptance_func(tensor)
+                if break_loop:
                     break
 
-        return delta
-    
+        return delta, accepted
 
 
 
@@ -136,12 +141,12 @@ class NES_Optimizer(Optimizer):
 
             tensor          += step
             delta           += step
-            print(delta)
+
             tensor          = quant_func(tensor)
 
             if acceptance_func is not None:
-                accepted = acceptance_func(tensor)
-                if accepted:
+                break_loop, accepted = acceptance_func(tensor)
+                if break_loop:
                     break
 
         return delta, accepted

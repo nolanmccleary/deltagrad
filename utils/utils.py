@@ -27,5 +27,5 @@ def anal_clamp(tensor, step, vecMin, vecMax, scale_factor=1.0):
         torch.tensor(scale_factor, device=device),
     )
     
-    safe_scale_vector   = torch.min(pos_scale, neg_scale).clamp(min=vecMin, max=vecMax)
+    safe_scale_vector   = torch.min(pos_scale, neg_scale).clamp(min=0.0, max=scale_factor)
     return safe_scale_vector

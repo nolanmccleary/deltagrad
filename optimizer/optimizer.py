@@ -132,11 +132,12 @@ class NES_Optimizer(Optimizer):
             #            step *= (tensor_norm / (step_norm + EPS))
 
             step            = (step * beta + prev_step * alpha) * step_coeff
-            prev_step       = step
 
             if vecMin is not None and vecMax is not None:
                 safe_scale  = anal_clamp(tensor, step, vecMin, vecMax, perturbation_scale_factor)
                 step        = step * safe_scale
+
+            prev_step       = step
 
             tensor          += step
             delta           += step

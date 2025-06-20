@@ -68,7 +68,7 @@ class NES_Signed_Optimizer(Optimizer):
             tensor          += step
             delta           += step
 
-            tensor          = quant_func(tensor)
+            #tensor          = quant_func(tensor)
 
             if acceptance_func is not None:
                 break_loop, accepted = acceptance_func(tensor)
@@ -142,7 +142,7 @@ class NES_Optimizer(Optimizer):
             tensor          += step
             delta           += step
 
-            tensor          = quant_func(tensor)
+            #tensor          = quant_func(tensor)
 
             if acceptance_func is not None:
                 break_loop, accepted = acceptance_func(tensor)

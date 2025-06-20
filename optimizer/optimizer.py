@@ -119,17 +119,6 @@ class NES_Optimizer(Optimizer):
         for _ in range(num_steps): 
 
             step            = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax) #The step is very large so we have to normalize it
-            tensorMax, idx  = torch.abs(tensor).view(-1).max(0)
-            stepMax, idy    = torch.abs(step).view(-1).max(0)
-
-            step_scaledown  = (tensorMax / stepMax) 
-
-            step            *= step_scaledown
-
-
-            #            step_norm = step.norm()
-            #            tensor_norm = tensor.norm()
-            #            step *= (tensor_norm / (step_norm + EPS))
 
             step            = (step * beta + prev_step * alpha) * step_coeff
 
@@ -142,7 +131,6 @@ class NES_Optimizer(Optimizer):
             tensor          += step
             delta           += step
 
-            #tensor          = quant_func(tensor)
 
             if acceptance_func is not None:
                 break_loop, accepted = acceptance_func(tensor)

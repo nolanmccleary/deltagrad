@@ -29,7 +29,7 @@ class NES_Engine(Gradient_Engine):
 
 
     def compute_gradient(self, perturbation_scale_factor, num_perturbations, vecMin=None, vecMax=None):
-        tensor              = self.tensor    #Optimize for locality
+        tensor              = self.tensor    
         func                = self.func
         loss_func           = self.loss_func
         quant_func          = self.quant_func

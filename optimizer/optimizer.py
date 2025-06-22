@@ -33,7 +33,7 @@ class NES_Signed_Optimizer(Optimizer):
             tensor=self.tensor)
     
     
-    #Step coefficient encodes step size and direction 
+    
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
         quant_func      = self.quant_func
 
@@ -41,7 +41,7 @@ class NES_Signed_Optimizer(Optimizer):
         device          = tensor.device
 
         vecMin          = self.vecMin
-        vecMax          = self.vecMax    #Optimize for locality
+        vecMax          = self.vecMax    
 
         alpha           = 1 - beta
 
@@ -56,19 +56,19 @@ class NES_Signed_Optimizer(Optimizer):
 
         for _ in range(num_steps): 
 
-            step            = torch.sign(self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax)) 
+            step            = torch.sign(self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax))
+
+            step            = (step * beta + prev_step * alpha) * step_coeff
 
             if vecMin is not None and vecMax is not None:
                 safe_scale  = anal_clamp(tensor, step, vecMin, vecMax, perturbation_scale_factor)
                 step        = step * safe_scale
 
-            step            = step * step_coeff * beta + prev_step * alpha
             prev_step       = step
 
             tensor          += step
             delta           += step
 
-            #tensor          = quant_func(tensor)
 
             if acceptance_func is not None:
                 break_loop, accepted = acceptance_func(tensor)
@@ -95,7 +95,7 @@ class NES_Optimizer(Optimizer):
             tensor              = self.tensor)
     
     
-    #Step coefficient encodes step size and direction 
+    
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
         quant_func = self.quant_func
 
@@ -103,7 +103,7 @@ class NES_Optimizer(Optimizer):
         device          = tensor.device
 
         vecMin          = self.vecMin
-        vecMax          = self.vecMax    #Optimize for locality
+        vecMax          = self.vecMax    
 
         alpha           = 1 - beta
 
@@ -118,7 +118,7 @@ class NES_Optimizer(Optimizer):
 
         for _ in range(num_steps): 
 
-            step            = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax) #The step is very large so we have to normalize it
+            step            = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax)
 
             step            = (step * beta + prev_step * alpha) * step_coeff
 

@@ -54,10 +54,12 @@ class NES_Signed_Optimizer(Optimizer):
         else:
             accepted = False
 
+        step_count = 0
+
         for _ in range(num_steps): 
+            step_count += 1
 
             step            = torch.sign(self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax))
-
             step            = (step * beta + prev_step * alpha) * step_coeff
 
             if vecMin is not None and vecMax is not None:
@@ -69,13 +71,12 @@ class NES_Signed_Optimizer(Optimizer):
             tensor          += step
             delta           += step
 
-
             if acceptance_func is not None:
                 break_loop, accepted = acceptance_func(tensor)
                 if break_loop:
                     break
 
-        return delta, accepted
+        return step_count, delta, accepted
 
 
 
@@ -116,7 +117,10 @@ class NES_Optimizer(Optimizer):
         else:
             accepted = False
 
+        step_count = 0
+
         for _ in range(num_steps): 
+            step_count += 1
 
             step            = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax)
 
@@ -137,4 +141,4 @@ class NES_Optimizer(Optimizer):
                 if break_loop:
                     break
 
-        return delta, accepted
+        return step_count, delta, accepted

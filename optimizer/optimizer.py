@@ -37,7 +37,7 @@ class NES_Signed_Optimizer(Optimizer):
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
         quant_func      = self.quant_func
 
-        tensor          = self.tensor
+        tensor          = self.tensor.clone()
         device          = tensor.device
 
         vecMin          = self.vecMin
@@ -99,7 +99,7 @@ class NES_Optimizer(Optimizer):
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
         quant_func = self.quant_func
 
-        tensor          = self.tensor
+        tensor          = self.tensor.clone()
         device          = tensor.device
 
         vecMin          = self.vecMin

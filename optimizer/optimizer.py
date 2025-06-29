@@ -72,7 +72,7 @@ class NES_Signed_Optimizer(Optimizer):
             delta           += step
 
             if acceptance_func is not None:
-                break_loop, accepted = acceptance_func(tensor)
+                break_loop, accepted = acceptance_func(tensor, step_count)
                 if break_loop:
                     break
 
@@ -137,7 +137,7 @@ class NES_Optimizer(Optimizer):
 
 
             if acceptance_func is not None:
-                break_loop, accepted = acceptance_func(tensor)
+                break_loop, accepted = acceptance_func(tensor, step_count)
                 if break_loop:
                     break
 

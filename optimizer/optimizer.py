@@ -35,10 +35,7 @@ class NES_Signed_Optimizer(Optimizer):
     
     
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
-        quant_func      = self.quant_func
-
         tensor          = self.tensor.clone()
-        device          = tensor.device
 
         vecMin          = self.vecMin
         vecMax          = self.vecMax    
@@ -60,10 +57,10 @@ class NES_Signed_Optimizer(Optimizer):
             step_count += 1
 
             step            = torch.sign(self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax))
-            step            = (step * beta + prev_step * alpha) * step_coeff
+            step            = (step * beta + prev_step * alpha)
 
             if vecMin is not None and vecMax is not None:
-                safe_scale  = anal_clamp(tensor, step, vecMin, vecMax, perturbation_scale_factor)
+                safe_scale  = anal_clamp(tensor, step, vecMin, vecMax, step_coeff)
                 step        = step * safe_scale
 
             prev_step       = step
@@ -98,8 +95,6 @@ class NES_Optimizer(Optimizer):
     
     
     def get_delta(self, step_coeff, num_steps, perturbation_scale_factor, num_perturbations, beta=1, acceptance_func=None):
-        quant_func = self.quant_func
-
         tensor          = self.tensor.clone()
         device          = tensor.device
 
@@ -123,11 +118,10 @@ class NES_Optimizer(Optimizer):
             step_count += 1
 
             step            = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax)
-
-            step            = (step * beta + prev_step * alpha) * step_coeff
+            step            = (step * beta + prev_step * alpha)
 
             if vecMin is not None and vecMax is not None:
-                safe_scale  = anal_clamp(tensor, step, vecMin, vecMax, perturbation_scale_factor)
+                safe_scale  = anal_clamp(tensor, step, vecMin, vecMax, step_coeff)
                 step        = step * safe_scale
 
             prev_step       = step

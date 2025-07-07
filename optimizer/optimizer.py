@@ -115,14 +115,16 @@ class NES_Optimizer(Optimizer):
         step_count = 0
 
         for _ in range(num_steps): 
-            step_count += 1
+            step_count      += 1
 
-            step            = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax)
+            step            = self.engine.compute_gradient(perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations, vecMin=self.vecMin, vecMax=self.vecMax) * step_coeff
             step            = (step * beta + prev_step * alpha)
 
+            '''
             if vecMin is not None and vecMax is not None:
                 safe_scale  = anal_clamp(tensor, step, vecMin, vecMax, step_coeff)
                 step        = step * safe_scale
+            '''
 
             prev_step       = step
 

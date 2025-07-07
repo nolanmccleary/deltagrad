@@ -41,12 +41,17 @@ class NES_Engine(Gradient_Engine):
         perturbations       = generate_perturbation_vectors(num_perturbations, tensor.shape, device) #[[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]
         last_output         = func(tensor).to(loss_func_device)
 
+        '''
         if vecMin is not None and vecMax is not None:
             safe_scale      = anal_clamp(tensor, perturbations, vecMin, vecMax, perturbation_scale_factor)
             cand_batch      = (tensor + perturbations * safe_scale).to(func_device).clamp(vecMin, vecMax) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
         
         else:
             cand_batch      = (tensor + perturbations).to(func_device)
+        '''
+        
+        cand_batch      = (tensor + perturbations * perturbation_scale_factor).to(func_device)
+
 
         if quant_func is not None:
             cand_batch      = quant_func(cand_batch.to(quant_func_device))

@@ -28,7 +28,7 @@ class NES_Engine(Gradient_Engine):
         super().__init__(func, loss_func, quant_func, func_device, loss_func_device, quant_func_device, tensor)
 
 
-    def compute_gradient(self, perturbation_scale_factor, num_perturbations, vecMin=None, vecMax=None):
+    def compute_gradient(self, perturbation_scale_factor, num_perturbations, vecMin=None, vecMax=None) -> torch.Tensor:
         tensor              = self.tensor    
         func                = self.func
         loss_func           = self.loss_func

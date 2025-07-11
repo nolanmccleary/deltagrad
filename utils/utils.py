@@ -3,7 +3,7 @@ import torch
 EPS = 1e-6
 
 
-def generate_perturbation_vectors(num_perturbations, shape, device):
+def generate_perturbation_vectors(num_perturbations, shape, device) -> torch.Tensor:
     base    = torch.randn((num_perturbations // 2, *shape), dtype=torch.float32, device=device) 
     absmax  = base.abs().amax(dim=1, keepdim=True)
     scale   = torch.where(absmax > 0, 1.0 / absmax, torch.tensor(1.0, device = device)) #scale tensor to get max val of each generated perturbation so that we can normalize
@@ -13,7 +13,7 @@ def generate_perturbation_vectors(num_perturbations, shape, device):
 
 
 #Analytic Clamp
-def anal_clamp(tensor, step, vecMin, vecMax, clamp_max=1.0):
+def anal_clamp(tensor, step, vecMin, vecMax, clamp_max=1.0) -> torch.Tensor:
     assert clamp_max <= 1.0, "ERROR: Clamp should not boost perturbation primitive!"
     
     device              = tensor.device

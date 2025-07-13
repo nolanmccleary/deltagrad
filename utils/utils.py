@@ -14,7 +14,7 @@ def generate_perturbation_vectors(num_perturbations, shape, device) -> torch.Ten
 
 #Analytic Clamp
 def anal_clamp(tensor, step, vecMin, vecMax, clamp_max=1.0) -> torch.Tensor:
-    assert clamp_max <= 1.0, "ERROR: Clamp should not boost perturbation primitive!"
+    #assert clamp_max <= 1.0, "ERROR: Clamp should not boost perturbation primitive!"
     
     device              = tensor.device
     

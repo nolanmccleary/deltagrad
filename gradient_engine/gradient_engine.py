@@ -45,10 +45,9 @@ class NES_Engine(Gradient_Engine):
         device              = tensor.device
 
         perturbations       = generate_perturbation_vectors(num_perturbations, tensor.shape, device) #[[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]]
-        base_perturbations  = perturbations.clone()
         last_output         = func(tensor).to(loss_func_device)
 
-        self.log(f"Gradient computation - perturbation stats pre-scale: abs max={torch.max(torch.abs(perturbations)):.4f}, abs min={torch.min(torch.abs(perturbations)):.4f}, mean={torch.mean(perturbations):.4f}, rms mean={torch.sqrt(torch.mean(perturbations**2)):.4f}, abs mean={torch.mean(torch.abs(perturbations)):.4f}")
+        self.log(f"Gradient computation - perturbation stats: abs max={torch.max(torch.abs(perturbations)):.4f}, abs min={torch.min(torch.abs(perturbations)):.4f}, mean={torch.mean(perturbations):.4f}, rms mean={torch.sqrt(torch.mean(perturbations**2)):.4f}, abs mean={torch.mean(torch.abs(perturbations)):.4f}")
 
         cand_batch      = (tensor + perturbations * perturbation_scale_factor).to(func_device) #[t1, t2, t3] + [[p11, p12, p13], [p21, p22, p23], [p31, p32, p33]] -> [[c11, c12, c13], [c21, c22, c23], [c31, c32, c33]] where cxy = t[y] + p[x,y]
         

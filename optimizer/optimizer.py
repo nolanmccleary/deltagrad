@@ -137,7 +137,7 @@ class NES_Optimizer(Optimizer):
                 step        = step * safe_scale
             
             self.log(f"Post-clamp step: abs max={torch.max(torch.abs(step)):.6f}, abs min={torch.min(torch.abs(step)):.6f}, mean={torch.mean(step):.6f}, rms mean={torch.sqrt(torch.mean(step**2)):.6f}, abs mean={torch.mean(torch.abs(step)):.6f}")
-            print(f"Step similarity after clamp: {torch.cosine_similarity(step.flatten(), base_step.flatten(), dim=0):.10f}\n")
+            self.log(f"Step similarity after clamp: {torch.cosine_similarity(step.flatten(), base_step.flatten(), dim=0):.10f}\n")
 
             prev_step       = step
 

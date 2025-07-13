@@ -1,7 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-1. You must always ask for permission to edit files in this scope.
-2. If permission for the above has been granted, you must explictly ask for permission again if any of your changes affect the geometry / dimensionality / memory characteristics of any pre-existing tensor pipeline. When asking for permission, please explain in detail what will be changed and why you think the change would work better.

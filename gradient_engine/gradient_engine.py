@@ -1,20 +1,30 @@
 import torch
+from pydantic import BaseModel, Field
 from spectra.deltagrad.utils import generate_perturbation_vectors, anal_clamp
+from typing import Callable
+
+class Gradient_Engine_Config(BaseModel):
+    func: Callable = Field(..., description="Function")
+    loss_func: Callable = Field(..., description="Loss function")
+    quant_func: Callable = Field(..., description="Quantization function")
+    func_device: str = Field(..., description="Function device")
+    loss_func_device: str = Field(..., description="Loss function device")
+    quant_func_device: str = Field(..., description="Quantization function device")
+    verbose: str = Field(..., description="Verbosity level")
+
 
 
 EPS = 1e-6 #1 in a million, Baby
 class Gradient_Engine:
 
-    def __init__(self, func, loss_func, quant_func, func_device, loss_func_device, quant_func_device, tensor, verbose="off"):    
-        self.func                   = func
-        self.loss_func              = loss_func
-        self.quant_func             = quant_func
-        self.func_device            = func_device
-        self.loss_func_device       = loss_func_device
-        self.quant_func_device      = quant_func_device
-        self.tensor                 = tensor
-        self.gradient               = torch.zeros_like(self.tensor)
-        self.verbose                = verbose
+    def __init__(self, config: Gradient_Engine_Config):    
+        self.func                   = config.func
+        self.loss_func              = config.loss_func
+        self.quant_func             = config.quant_func
+        self.func_device            = config.func_device
+        self.loss_func_device       = config.loss_func_device
+        self.quant_func_device      = config.quant_func_device
+        self.verbose                = config.verbose
         
 
     def log(self, msg: str) -> None:
@@ -22,7 +32,7 @@ class Gradient_Engine:
         if self.verbose == "on":
             print(msg)
 
-    def compute_gradient(self, **kwargs):
+    def compute_gradient(self, tensor: torch.Tensor, perturbation_scale_factor: float, num_perturbations: int) -> torch.Tensor:
         raise NotImplementedError("Subclasses must implement compute_gradient.")
 
 
@@ -30,12 +40,11 @@ class Gradient_Engine:
 
 class NES_Engine(Gradient_Engine):
     
-    def __init__(self, func, loss_func, quant_func, func_device, loss_func_device, quant_func_device, tensor, verbose="off"):      
-        super().__init__(func, loss_func, quant_func, func_device, loss_func_device, quant_func_device, tensor, verbose)
+    def __init__(self, config: Gradient_Engine_Config):      
+        super().__init__(config)
 
 
-    def compute_gradient(self, perturbation_scale_factor, num_perturbations) -> torch.Tensor:
-        tensor              = self.tensor    
+    def compute_gradient(self, tensor: torch.Tensor, perturbation_scale_factor: float, num_perturbations: int) -> torch.Tensor:
         func                = self.func
         loss_func           = self.loss_func
         quant_func          = self.quant_func

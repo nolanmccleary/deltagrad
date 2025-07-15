@@ -1,1 +1,1 @@
-from .gradient_engine import Gradient_Engine, NES_Engine
+from .gradient_engine import Gradient_Engine, NES_Engine, Gradient_Engine_Config

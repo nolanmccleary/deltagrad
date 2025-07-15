@@ -13,21 +13,19 @@ def generate_perturbation_vectors(num_perturbations, shape, device) -> torch.Ten
 
 
 #Analytic Clamp
-def anal_clamp(tensor, step, vecMin, vecMax, clamp_max=1.0) -> torch.Tensor:
-    #assert clamp_max <= 1.0, "ERROR: Clamp should not boost perturbation primitive!"
+def anal_clamp(tensor, step, vecMin, vecMax, clamp_damp=1.0) -> torch.Tensor:
+    assert clamp_damp <= 1.0, "ERROR: Clamp should not boost perturbation primitive!"
     
-    device              = tensor.device
+    device = tensor.device
+    step = step.to(device)
     
-    pos_scale = torch.where(
-        step > 0,
-        (vecMax - tensor) / (step + EPS),
-        torch.tensor(clamp_max, device=device),
-    )
-    neg_scale = torch.where(   
-        step < 0,
-        (vecMin - tensor) / (step - EPS),
-        torch.tensor(clamp_max, device=device),
-    )
+    # Calculate both scales
+    pos_scale = (vecMax - tensor) / (step + EPS)
+    neg_scale = (vecMin - tensor) / (step - EPS)
     
-    safe_scale_vector   = torch.min(pos_scale, neg_scale).clamp(min=0.0, max=clamp_max)
+    # Use where with explicit boolean tensors
+    pos_scale = torch.where(step > 0, pos_scale, torch.tensor(clamp_damp, device=device))
+    neg_scale = torch.where(step < 0, neg_scale, torch.tensor(clamp_damp, device=device))
+    
+    safe_scale_vector = torch.min(pos_scale, neg_scale).clamp(min=0.0, max=clamp_damp)
     return safe_scale_vector

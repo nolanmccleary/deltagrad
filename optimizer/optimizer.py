@@ -29,7 +29,6 @@ class Optimizer:
     def __init__(self, config: Optimizer_Config):
         self.config = config
 
-
     def log(self, msg: str) -> None:
         """Log message if verbose mode is enabled"""
         if self.config.verbose == "on":
@@ -202,8 +201,7 @@ class Colinear_Optimizer(Optimizer):
         self.engine = NES_Engine(self.gradient_engine_config)
     
     
-    
-    def get_delta(self, tensor: torch.Tensor, config: Delta_Config, boost: float = 1.1) -> tuple[int, torch.Tensor, bool]:
+    def get_delta(self, tensor: torch.Tensor, config: Delta_Config) -> tuple[int, torch.Tensor, bool]:
         working_tensor  = tensor.clone()
         perturbation_scale_factor = config.perturbation_scale_factor
         num_perturbations = config.num_perturbations
@@ -222,11 +220,12 @@ class Colinear_Optimizer(Optimizer):
         
         for _ in range(config.num_steps): 
 
-            self.log(f"Step {step_count}")
-
-            delta *= boost
+            delta += init_step
 
             step_count += 1
+
+            self.log(f"Step {step_count}")
+            self.log(f"Delta max: {torch.max(delta):.6f}, min: {torch.min(delta):.6f}, mean: {torch.mean(delta):.6f}, rms mean: {torch.sqrt(torch.mean(delta**2)):.6f}, abs mean: {torch.mean(torch.abs(delta)):.6f}")
 
             if acceptance_func is not None:
                 break_loop, accepted = acceptance_func(torch.add(working_tensor, delta), step_count)

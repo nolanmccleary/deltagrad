@@ -1,1 +1,1 @@
-from .optimizer import NES_Signed_Optimizer, NES_Optimizer, Colinear_Optimizer, Optimizer_Config, Delta_Config
+from .optimizer import Optimizer, NES_Signed_Optimizer, NES_Optimizer, Colinear_Optimizer, Optimizer_Config, Delta_Config

@@ -219,11 +219,14 @@ class Colinear_Optimizer(Optimizer):
         step_count = 0
         init_step = self.engine.compute_gradient(tensor=working_tensor, perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations) * step_coeff
         delta = init_step.clone()
+        
         for _ in range(config.num_steps): 
 
             self.log(f"Step {step_count}")
 
             delta *= boost
+
+            step_count += 1
 
             if acceptance_func is not None:
                 break_loop, accepted = acceptance_func(torch.add(working_tensor, delta), step_count)

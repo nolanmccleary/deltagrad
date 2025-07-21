@@ -19,7 +19,7 @@ class Delta_Config(BaseModel):
     perturbation_scale_factor: float = Field(..., description="Perturbation scale factor")
     num_perturbations: int = Field(..., description="Number of perturbations")
     beta: float = Field(..., description="Beta")
-    acceptance_func: Optional[Callable] = Field(default=None, description="Acceptance function")
+    acceptance_func: Callable = Field(..., description="Acceptance function")
     vecMin: Optional[float] = Field(default=None, description="Vector minimum")
     vecMax: Optional[float] = Field(default=None, description="Vector maximum")
 
@@ -72,18 +72,15 @@ class NES_Signed_Optimizer(Optimizer):
         delta           = torch.zeros_like(working_tensor)
         prev_step       = torch.zeros_like(working_tensor)
 
-        if config.acceptance_func is None:
-            accepted = True 
-        
-        else:
-            accepted = False
+
+        accepted = False
 
         step_count = 0
 
         for _ in range(config.num_steps): 
             step_count      += 1
 
-            self.log(f"Step {step_count}")
+            self.log(f"\nStep {step_count}")
 
             step            = torch.sign(self.engine.compute_gradient(tensor=working_tensor, perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations))
             step            = (step * beta + prev_step * alpha)
@@ -95,18 +92,16 @@ class NES_Signed_Optimizer(Optimizer):
                 step        = step * safe_scale
             
             self.log(f"Post-clamp step: abs max={torch.max(torch.abs(step)):.6f}, abs min={torch.min(torch.abs(step)):.6f}, mean={torch.mean(step):.6f}, rms mean={torch.sqrt(torch.mean(step**2)):.6f}, abs mean={torch.mean(torch.abs(step)):.6f}")
-            self.log(f"Step similarity after clamp: {torch.cosine_similarity(step.flatten(), base_step.flatten(), dim=0):.10f}\n")
+            self.log(f"Step cosine similarity after clamp: {torch.cosine_similarity(step.flatten(), base_step.flatten(), dim=0):.10f}\n")
 
             prev_step       = step
 
             working_tensor  += step
             delta           += step
 
-
-            if acceptance_func is not None:
-                break_loop, accepted = acceptance_func(working_tensor, step_count)
-                if break_loop:
-                    break
+            break_loop, accepted = acceptance_func(working_tensor, step_count)
+            if break_loop:
+                break
 
         return step_count, delta, accepted
 
@@ -145,18 +140,14 @@ class NES_Optimizer(Optimizer):
         delta           = torch.zeros_like(working_tensor)
         prev_step       = torch.zeros_like(working_tensor)
 
-        if config.acceptance_func is None:
-            accepted = True 
-        
-        else:
-            accepted = False
+        accepted = False
 
         step_count = 0
 
         for _ in range(config.num_steps): 
             step_count      += 1
 
-            self.log(f"Step {step_count}")
+            self.log(f"\nStep {step_count}")
 
             step            = self.engine.compute_gradient(tensor=working_tensor, perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations)
             step            = (step * beta + prev_step * alpha)
@@ -168,7 +159,7 @@ class NES_Optimizer(Optimizer):
                 step        = step * safe_scale
             
             self.log(f"Post-clamp step: max={torch.max(step):.6f}, min={torch.min(step):.6f}, mean={torch.mean(step):.6f}, rms mean={torch.sqrt(torch.mean(step**2)):.6f}, abs mean={torch.mean(torch.abs(step)):.6f}")
-            self.log(f"Step similarity after clamp: {torch.cosine_similarity(step.flatten(), base_step.flatten(), dim=0):.10f}\n")
+            self.log(f"Step cosine similarity after clamp: {torch.cosine_similarity(step.flatten(), base_step.flatten(), dim=0):.10f}")
 
             prev_step       = step
 
@@ -176,10 +167,9 @@ class NES_Optimizer(Optimizer):
             delta           += step
 
 
-            if acceptance_func is not None:
-                break_loop, accepted = acceptance_func(working_tensor, step_count)
-                if break_loop:
-                    break
+            break_loop, accepted = acceptance_func(working_tensor, step_count)
+            if break_loop:
+                break
 
         return step_count, delta, accepted
 
@@ -208,11 +198,7 @@ class Colinear_Optimizer(Optimizer):
         step_coeff = config.step_coeff
         acceptance_func = config.acceptance_func
 
-        if config.acceptance_func is None:
-            accepted = True 
-        
-        else:
-            accepted = False
+        accepted = False
 
         step_count = 0
         init_step = self.engine.compute_gradient(tensor=working_tensor, perturbation_scale_factor=perturbation_scale_factor, num_perturbations=num_perturbations) * step_coeff
@@ -224,13 +210,13 @@ class Colinear_Optimizer(Optimizer):
 
             step_count += 1
 
-            self.log(f"Step {step_count}")
+            self.log(f"\nStep {step_count}")
             self.log(f"Delta max: {torch.max(delta):.6f}, min: {torch.min(delta):.6f}, mean: {torch.mean(delta):.6f}, rms mean: {torch.sqrt(torch.mean(delta**2)):.6f}, abs mean: {torch.mean(torch.abs(delta)):.6f}")
 
-            if acceptance_func is not None:
-                break_loop, accepted = acceptance_func(torch.add(working_tensor, delta), step_count)
-                if break_loop:
-                    break
+
+            break_loop, accepted = acceptance_func(torch.add(working_tensor, delta), step_count)
+            if break_loop:
+                break
 
         return step_count, delta, accepted
 
@@ -264,16 +250,9 @@ class Gaussian_Optimizer(Optimizer):
         step_coeff = config.step_coeff
         acceptance_func = config.acceptance_func
 
-        alpha           = 1 - beta
-
         delta           = torch.zeros_like(working_tensor)
-        prev_step       = torch.zeros_like(working_tensor)
 
-        if config.acceptance_func is None:
-            accepted = True 
-        
-        else:
-            accepted = False
+        accepted = False
 
         step_count = 0
 
@@ -285,12 +264,12 @@ class Gaussian_Optimizer(Optimizer):
             working_tensor  += step
             delta           += step
 
-            self.log(f"Step {step_count}")
+            self.log(f"\nStep {step_count}")
             self.log(f"Delta max: {torch.max(delta):.6f}, min: {torch.min(delta):.6f}, mean: {torch.mean(delta):.6f}, rms mean: {torch.sqrt(torch.mean(delta**2)):.6f}, abs mean: {torch.mean(torch.abs(delta)):.6f}")
 
-            if acceptance_func is not None:
-                break_loop, accepted = acceptance_func(working_tensor, step_count)
-                if break_loop:
-                    break
+
+            break_loop, accepted = acceptance_func(working_tensor, step_count)
+            if break_loop:
+                break
 
         return step_count, delta, accepted

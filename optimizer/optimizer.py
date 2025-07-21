@@ -233,3 +233,64 @@ class Colinear_Optimizer(Optimizer):
                     break
 
         return step_count, delta, accepted
+
+
+
+class Gaussian_Optimizer(Optimizer):
+
+    def __init__(self, config: Optimizer_Config):
+        super().__init__(config)
+        
+        self.gradient_engine_config = Gradient_Engine_Config(
+            func=self.config.func,
+            loss_func=self.config.loss_func,
+            quant_func=self.config.quant_func,
+            func_device=self.config.func_device,
+            loss_func_device=self.config.loss_func_device,
+            quant_func_device=self.config.quant_func_device,
+            verbose=self.config.verbose)
+        self.engine = NES_Engine(self.gradient_engine_config)
+    
+    
+    
+    def get_delta(self, tensor: torch.Tensor, config: Delta_Config) -> tuple[int, torch.Tensor, bool]:
+        working_tensor  = tensor.clone()
+
+        beta = config.beta
+        vecMin = config.vecMin
+        vecMax = config.vecMax
+        perturbation_scale_factor = config.perturbation_scale_factor
+        num_perturbations = config.num_perturbations
+        step_coeff = config.step_coeff
+        acceptance_func = config.acceptance_func
+
+        alpha           = 1 - beta
+
+        delta           = torch.zeros_like(working_tensor)
+        prev_step       = torch.zeros_like(working_tensor)
+
+        if config.acceptance_func is None:
+            accepted = True 
+        
+        else:
+            accepted = False
+
+        step_count = 0
+
+        for _ in range(config.num_steps): 
+            step_count      += 1
+
+            step = torch.randn_like(working_tensor) * step_coeff
+
+            working_tensor  += step
+            delta           += step
+
+            self.log(f"Step {step_count}")
+            self.log(f"Delta max: {torch.max(delta):.6f}, min: {torch.min(delta):.6f}, mean: {torch.mean(delta):.6f}, rms mean: {torch.sqrt(torch.mean(delta**2)):.6f}, abs mean: {torch.mean(torch.abs(delta)):.6f}")
+
+            if acceptance_func is not None:
+                break_loop, accepted = acceptance_func(working_tensor, step_count)
+                if break_loop:
+                    break
+
+        return step_count, delta, accepted
